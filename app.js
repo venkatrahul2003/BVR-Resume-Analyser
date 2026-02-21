@@ -23,6 +23,26 @@ if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
 let jobs = JSON.parse(localStorage.getItem('bvr_jobs')) || [];
 let currentUser = null;
 
+// UI Elements
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('resume-upload');
+const jdInput = document.getElementById('job-description');
+const companyInput = document.getElementById('job-company');
+const roleInput = document.getElementById('job-role');
+const analyzeBtn = document.getElementById('run-analysis');
+const resultsPanel = document.getElementById('results-panel');
+const resultsContent = document.querySelector('.results-content');
+const emptyState = document.querySelector('.empty-state');
+const fileInfoDisplay = document.getElementById('file-info');
+
+// Navigation
+const navDashboard = document.getElementById('nav-dashboard');
+const navAnalyze = document.getElementById('nav-analyze');
+const btnBack = document.getElementById('btn-back-dashboard');
+const dashboardView = document.getElementById('dashboard-view');
+const analysisView = document.getElementById('analysis-view');
+const heroSection = document.getElementById('hero-section');
+
 // Initialize PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
