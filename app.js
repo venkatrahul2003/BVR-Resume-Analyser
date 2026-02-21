@@ -191,6 +191,7 @@ function performAnalysis() {
         matches: matches,
         audit: [...auditResults, ...impactResults.tips],
         rawText: extractedText,
+        fileName: currentFile ? currentFile.name : "Text Paste",
         jd: jdText,
         status: 'Analysed'
     };
@@ -349,6 +350,10 @@ function displayFullResults(job) {
 
     document.getElementById('result-job-title').textContent = `${job.company} - ${job.role}`;
 
+    // Show attached filename and analysis summary
+    const summaryElement = document.getElementById('score-summary');
+    summaryElement.innerHTML = `Linked Resume: <span style="color: var(--primary)">${job.fileName || 'Archive'}</span>`;
+
     // Score Circle
     const scoreNum = document.getElementById('score-num');
     const scoreRing = document.getElementById('score-ring');
@@ -372,10 +377,12 @@ function displayFullResults(job) {
         </li>
     `).join('');
 
-    const summary = document.getElementById('score-summary');
-    if (job.score > 85) summary.textContent = "Elite Match: Your resume shows high impact and perfect technical alignment.";
-    else if (job.score > 70) summary.textContent = "Strong Match: Good visibility, but consider adding more quantifiable results.";
-    else summary.textContent = "Low Match: Needs professional revamp of action verbs and technical keywords.";
+    let recommendation = "";
+    if (job.score > 85) recommendation = "Elite Match: Your resume shows high impact and perfect technical alignment.";
+    else if (job.score > 70) recommendation = "Strong Match: Good visibility, but consider adding more quantifiable results.";
+    else recommendation = "Low Match: Needs professional revamp of action verbs and technical keywords.";
+
+    summaryElement.innerHTML += `<br><span style="font-size: 0.9rem; opacity: 0.8;">${recommendation}</span>`;
 }
 
 function getScoreColor(score) {
