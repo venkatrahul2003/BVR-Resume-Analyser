@@ -236,6 +236,7 @@ function analyzeImpact(text) {
 
 // --- AUTH & SYNC LOGIC ---
 const loginBtn = document.getElementById('btn-login');
+const logoutBtn = document.getElementById('btn-logout');
 const authStatus = document.getElementById('auth-status');
 
 if (auth) {
@@ -244,17 +245,35 @@ if (auth) {
         auth.signInWithPopup(provider);
     });
 
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        auth.signOut().then(() => {
+            currentUser = null;
+            jobs = [];
+            localStorage.removeItem('bvr_jobs');
+            updateDashboard();
+        });
+    });
+
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
             loginBtn.classList.add('hidden');
+            logoutBtn.classList.remove('hidden');
             authStatus.classList.remove('hidden');
-            authStatus.textContent = `Logged in as ${user.displayName.split(' ')[0]}`;
-            syncFromCloud();
+            authStatus.textContent = `Hi, ${user.displayName.split(' ')[0]}`;
+
+            // Critical Sync: Push local jobs to cloud, then pull everything
+            syncLocalToCloud().then(() => syncFromCloud());
         } else {
             currentUser = null;
             loginBtn.classList.remove('hidden');
+            logoutBtn.classList.add('hidden');
             authStatus.classList.add('hidden');
+
+            // Reload local storage for guest
+            jobs = JSON.parse(localStorage.getItem('bvr_jobs')) || [];
+            updateDashboard();
         }
     });
 }
@@ -272,11 +291,28 @@ function saveJob(job) {
     }
 }
 
+async function syncLocalToCloud() {
+    if (!db || !currentUser) return;
+    const localJobs = JSON.parse(localStorage.getItem('bvr_jobs')) || [];
+
+    // Batch upload local jobs to cloud
+    const batch = db.batch();
+    localJobs.forEach(job => {
+        const ref = db.collection('users').doc(currentUser.uid).collection('jobs').doc(job.id.toString());
+        batch.set(ref, job);
+    });
+    await batch.commit();
+}
+
 async function syncFromCloud() {
     if (db && currentUser) {
-        const snapshot = await db.collection('users').doc(currentUser.uid).collection('jobs').orderBy('id', 'desc').get();
+        const snapshot = await db.collection('users').doc(currentUser.uid).collection('jobs').get();
         const cloudJobs = [];
         snapshot.forEach(doc => cloudJobs.push(doc.data()));
+
+        // Sort by ID descending (newest first)
+        cloudJobs.sort((a, b) => b.id - a.id);
+
         if (cloudJobs.length > 0) {
             jobs = cloudJobs;
             localStorage.setItem('bvr_jobs', JSON.stringify(jobs));
