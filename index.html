@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BVR | Professional Resume Analyser & Tracker</title>
+    <meta name="description"
+        content="BVR Resume Analyser - Tailor your resume for FAANG, track your applications, and beat the ATS like a pro.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+
+<body class="dark-theme">
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">BVR</span>
+                <span class="logo-text">ANALYSER</span>
+            </div>
+            <div class="nav-links">
+                <a href="#" id="auth-status" class="hidden">Not Logged In</a>
+                <a href="#" id="btn-login" class="secondary-btn">Login to Sync</a>
+                <a href="#" id="nav-dashboard" class="active-nav">Dashboard</a>
+                <a href="#" id="nav-analyze" class="cta-btn">+ Track New Job</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero" id="hero-section">
+        <div class="container">
+            <h1 class="gradient-text">BVR: Your Personal <br><span>Career Co-Pilot</span></h1>
+            <p class="hero-sub">The ultimate tool to tailor resumes for top tech companies. Track multi-job
+                applications, optimize for keywords, and manage your progress in one place.</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Dashboard Section -->
+        <section id="dashboard-view" class="view-section">
+            <div class="section-header">
+                <h2>My Applications</h2>
+                <div class="stats">
+                    <div class="stat-item">Total: <span id="stat-total">0</span></div>
+                    <div class="stat-item">High Match: <span id="stat-high">0</span></div>
+                </div>
+            </div>
+            <div id="jobs-grid" class="jobs-grid">
+                <!-- Job cards will be injected here -->
+                <div class="empty-dashboard">
+                    <h3>No jobs tracked yet</h3>
+                    <p>Click "+ Track New Job" to start tailoring your resume.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Section (Hidden by default) -->
+        <section id="analysis-view" class="view-section hidden">
+            <div class="back-nav">
+                <button id="btn-back-dashboard">← Back to Dashboard</button>
+            </div>
+            <section class="analysis-grid">
+                <div class="input-panel glass-card">
+                    <div class="panel-header">
+                        <h2>Job Details</h2>
+                        <p>Tell us about the role you're applying for.</p>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="job-company" placeholder="Company Name (e.g. Google)">
+                        <input type="text" id="job-role" placeholder="Role Title (e.g. Software Engineer)">
+                    </div>
+
+                    <div class="panel-header mt-lg">
+                        <h2>1. Upload Target Resume</h2>
+                        <p>PDF or TXT required for parsing.</p>
+                    </div>
+                    <div class="drop-zone" id="drop-zone">
+                        <input type="file" id="resume-upload" hidden accept=".pdf,.txt">
+                        <div class="drop-zone-content">
+                            <i class="upload-icon">↑</i>
+                            <span>Drag & drop or <span class="highlight">browse</span></span>
+                            <p class="file-info" id="file-info">No file selected</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-header mt-lg">
+                        <h2>2. Job Description</h2>
+                        <p>Paste the JD to check keyword alignment.</p>
+                    </div>
+                    <textarea id="job-description" placeholder="Paste the job description here..."></textarea>
+
+                    <button id="run-analysis" class="main-btn">
+                        <span>Save & Analyze</span>
+                        <div class="btn-shine"></div>
+                    </button>
+                </div>
+
+                <div class="results-panel glass-card" id="results-panel">
+                    <div class="empty-state">
+                        <div class="pulse-circle"></div>
+                        <h3>Deep Analysis Pending</h3>
+                        <p>Fill in the details to generate your BVR Score.</p>
+                    </div>
+
+                    <div class="results-content hidden">
+                        <div class="score-header">
+                            <div class="ats-score">
+                                <svg class="progress-ring" width="120" height="120">
+                                    <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.1)"
+                                        stroke-width="8" fill="transparent" r="52" cx="60" cy="60" />
+                                    <circle class="progress-ring__circle" id="score-ring" stroke="var(--primary)"
+                                        stroke-width="8" stroke-dasharray="326.7" stroke-dashoffset="0"
+                                        stroke-linecap="round" fill="transparent" r="52" cx="60" cy="60" />
+                                </svg>
+                                <div class="score-value"><span id="score-num">0</span>%</div>
+                            </div>
+                            <div class="score-label">
+                                <h3 id="result-job-title">Job Match</h3>
+                                <p id="score-summary">Overall readability and alignment rating.</p>
+                            </div>
+                        </div>
+
+                        <div class="report-tabs">
+                            <button class="tab-btn active" data-tab="parser">Resume Extract</button>
+                            <button class="tab-btn" data-tab="keywords">Keywords</button>
+                            <button class="tab-btn" data-tab="formatting">BVR Audit</button>
+                        </div>
+
+                        <div class="tab-panels">
+                            <div id="parser-tab" class="tab-content active">
+                                <p class="info-note">FAANG OCR Simulation: This is what the automated reader sees.</p>
+                                <div class="text-view" id="extracted-text"></div>
+                            </div>
+                            <div id="keywords-tab" class="tab-content">
+                                <h4>Missing Keywords</h4>
+                                <div class="keyword-list" id="keyword-matches"></div>
+                            </div>
+                            <div id="formatting-tab" class="tab-content">
+                                <h4>Technical Audit</h4>
+                                <ul class="audit-list" id="formatting-audit"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 BVR Resume Analyser. Professional tools for serious candidates.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
