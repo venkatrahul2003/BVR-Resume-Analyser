@@ -294,23 +294,31 @@ function saveJob(job) {
 async function syncLocalToCloud() {
     if (!db || !currentUser) return;
     const localJobs = JSON.parse(localStorage.getItem('bvr_jobs')) || [];
+    if (localJobs.length === 0) return;
 
-    // Batch upload local jobs to cloud
-    const batch = db.batch();
-    localJobs.forEach(job => {
-        const ref = db.collection('users').doc(currentUser.uid).collection('jobs').doc(job.id.toString());
-        batch.set(ref, job);
-    });
-    await batch.commit();
+    console.log(`Pushing ${localJobs.length} local jobs to BVR Cloud...`);
+    try {
+        const batch = db.batch();
+        localJobs.forEach(job => {
+            const ref = db.collection('users').doc(currentUser.uid).collection('jobs').doc(job.id.toString());
+            batch.set(ref, job);
+        });
+        await batch.commit();
+        console.log("Push successful.");
+    } catch (err) {
+        console.error("Cloud push error:", err);
+    }
 }
 
 async function syncFromCloud() {
-    if (db && currentUser) {
+    if (!db || !currentUser) return;
+    console.log("Pulling data from BVR Cloud...");
+    try {
         const snapshot = await db.collection('users').doc(currentUser.uid).collection('jobs').get();
         const cloudJobs = [];
         snapshot.forEach(doc => cloudJobs.push(doc.data()));
 
-        // Sort by ID descending (newest first)
+        console.log(`Cloud data found: ${cloudJobs.length} items.`);
         cloudJobs.sort((a, b) => b.id - a.id);
 
         if (cloudJobs.length > 0) {
@@ -318,6 +326,8 @@ async function syncFromCloud() {
             localStorage.setItem('bvr_jobs', JSON.stringify(jobs));
             updateDashboard();
         }
+    } catch (err) {
+        console.error("Cloud pull error:", err);
     }
 }
 
